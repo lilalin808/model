@@ -10,8 +10,9 @@
       type="text/javascript"
       src="https://static.sketchfab.com/api/sketchfab-viewer-1.12.1.js"
     ></script>
-  <meta http-equiv="Permissions-Policy" content="accelerometer=*; gyroscope=*; magnetometer=*; ambient-light-sensor=*; xr-spatial-tracking=*">
 
+    <!-- Permissions Policy for device sensors -->
+    <meta http-equiv="Permissions-Policy" content="accelerometer=*; gyroscope=*; magnetometer=*; ambient-light-sensor=*; xr-spatial-tracking=*">
   </head>
 
   <body>
@@ -22,8 +23,10 @@
       height="500"
       src="https://sketchfab.com/models/8e7464e733e742a3a97c6b4b376aeafe/embed"
       frameborder="0"
-      allowvr="yes" allow="xr-spatial-tracking" allowfullscreen="yes"
+      allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture; xr-spatial-tracking"
+      allowfullscreen
     ></iframe>
+
     <div id="text"></div>
 
     <script>
@@ -33,11 +36,12 @@
 
       client.init("8e7464e733e742a3a97c6b4b376aeafe", {
         success: function (api) {
-          api.addEventListener("annotationSelect", function (event) {
+          api.addEventListener("annotationSelected", function (event) {
             // Capture the selected annotation
             var annotation = event.detail.annotation;
             var question = annotation.text; // Annotation's text as the question
 
+            // Log the annotation to the console
             window.console.log(annotation);
           });
         },
