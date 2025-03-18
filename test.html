@@ -29,20 +29,33 @@
 
     <div id="text"></div>
 
-    <script>
+     <script>
       // Initialize the Sketchfab model
       var client = new Sketchfab("1.0.0", document.getElementById("api-frame"));
       var correctAnswer = "A"; // Just an example answer
 
       client.init("8e7464e733e742a3a97c6b4b376aeafe", {
         success: function (api) {
+          // Log the initialization success
+          console.log("Sketchfab model initialized successfully!");
+
           api.addEventListener("annotationSelected", function (event) {
             // Capture the selected annotation
             var annotation = event.detail.annotation;
             var question = annotation.text; // Annotation's text as the question
 
-            // Log the annotation to the console
-            window.console.log(annotation);
+            // Debugging: Log the annotation data when clicked
+            console.log("Annotation selected:", annotation);
+
+            // Show annotation text in the 'text' div
+            document.getElementById('text').innerHTML = "<strong>Selected Question:</strong><br>" + question;
+
+            // Example logic for checking the answer
+            if (annotation.text === correctAnswer) {
+              alert("Correct answer!");
+            } else {
+              alert("Wrong answer!");
+            }
           });
         },
         error: function () {
