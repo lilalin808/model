@@ -40,8 +40,8 @@
           console.log("Sketchfab model initialized successfully!");
           console.log(api); // Log the API object to check the status and annotations
 
-          // Check if annotations are available
-          api.getAnnotations(function (annotations) {
+          // Fetch the list of annotations
+          api.getAnnotationsList(function (annotations) {
             if (annotations && annotations.length > 0) {
               console.log("Annotations found:", annotations);
             } else {
