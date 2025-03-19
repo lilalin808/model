@@ -1,10 +1,10 @@
 <!doctype html>
-<html>
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Sketchfab Viewer API example</title>
-
+    <script type="module" src="test.js"></script>
     <!-- Sketchfab API -->
     <script
       type="text/javascript"
@@ -12,14 +12,17 @@
     ></script>
 
     <!-- Permissions Policy for device sensors -->
-    <meta http-equiv="Permissions-Policy" content="accelerometer=*; gyroscope=*; magnetometer=*; ambient-light-sensor=*; xr-spatial-tracking=*">
+    <meta
+      http-equiv="Permissions-Policy"
+      content="accelerometer=*; gyroscope=*; magnetometer=*; ambient-light-sensor=*; xr-spatial-tracking=*"
+    />
   </head>
 
   <body>
     <!-- Sketchfab 3D model -->
     <iframe
       id="api-frame"
-      width="100%"
+      width="800"
       height="500"
       src="https://sketchfab.com/models/8e7464e733e742a3a97c6b4b376aeafe/embed"
       frameborder="0"
@@ -27,52 +30,252 @@
       allowfullscreen
     ></iframe>
 
-    <div id="text"></div>
+    <div id="annotations-sync"></div>
+
+    <!-- Quiz container -->
+    <div id="quiz-container" style="display: none">
+      <div id="question"></div>
+      <div id="options"></div>
+    </div>
+
+    <!-- Results container -->
+    <div id="results" style="display: none">
+      <p>Your score: <span id="score"></span></p>
+      <button id="retry-button" onclick="retryQuiz()">Try Again</button>
+    </div>
 
     <script>
-      // Initialize the Sketchfab model
-      var client = new Sketchfab("1.0.0", document.getElementById("api-frame"));
-      var correctAnswer = "A"; // Just an example answer
+      var version = "1.12.1";
+      var iframe = document.getElementById("api-frame");
+      var uid = "8e7464e733e742a3a97c6b4b376aeafe";
+      var annotations = []; // Store annotations here
+      var currentQuestionIndex = 0;
+      var score = 0;
 
-      client.init("8e7464e733e742a3a97c6b4b376aeafe", {
-        success: function (api) {
-          // Log the success and api details
-          console.log("Sketchfab model initialized successfully!");
-          console.log(api); // Log the API object to check the status and annotations
+      // Initialize the Sketchfab viewer
+      function actionSkfb() {
+        if (!window.Sketchfab) {
+          console.log("no Sketchfab library");
+          return;
+        }
 
-          // Fetch the list of annotations
-          api.getAnnotationsList(function (annotations) {
-            if (annotations && annotations.length > 0) {
-              console.log("Annotations found:", annotations);
-            } else {
-              console.log("No annotations found for this model.");
-            }
+        var client = new window.Sketchfab(version, iframe);
+        var error = function () {
+          console.error("Sketchfab API error");
+        };
+
+        var success = function (api) {
+          api.start(function () {});
+          api.addEventListener("viewerready", function () {
+            api.getAnnotationList(function (err, annots) {
+              if (!err) {
+                annotations = annots;
+                console.log(annotations);
+              }
+            });
+
+            api.addEventListener("annotationSelect", function (info) {
+              if (info === -1) {
+                document.getElementById("annotations-sync").innerHTML =
+                  "No annotation selected.";
+                return;
+              }
+
+              var selectedAnnotation = annotations[info];
+              document.getElementById("annotations-sync").innerHTML =
+                "<strong>" +
+                selectedAnnotation.name +
+                "</strong><br>" +
+                (selectedAnnotation.content
+                  ? selectedAnnotation.content.rendered
+                  : "");
+
+              // Trigger the quiz when an annotation is selected
+              showQuestion(info); // Pass the annotation index to showQuestion
+            });
+
+            console.log("Viewer is ready!");
           });
+        };
 
-          // Add event listener for annotations
-          api.addEventListener("annotationSelected", function (event) {
-            // Capture the selected annotation
-            var annotation = event.detail.annotation;
-            var question = annotation.text; // Annotation's text as the question
+        client.init(uid, {
+          success: success,
+          error: error,
+          autostart: 1,
+          preload: 1,
+          annotation_tooltip_visible: 0,
+        });
+      }
 
-            // Debugging: Log the annotation data when clicked
-            console.log("Annotation selected:", annotation);
+      actionSkfb();
 
-            // Show annotation text in the 'text' div
-            document.getElementById('text').innerHTML = "<strong>Selected Question:</strong><br>" + question;
+      // Define quiz questions
+      const quizQuestions = [
+        {
+          question:
+            "Where is the optic chiasm located in the brain, and what is its role in vision?",
+          options: [
+            "A) It connects the optic nerves and is responsible for the crossover of visual information from the left and right eyes.",
+            "B) It is located in the temporal lobe and controls the processing of visual stimuli.",
+            "C) It is part of the ear and is involved in hearing.",
+            "D) It is located in the frontal lobe and processes visual memory.",
+          ],
+          correctAnswer:
+            "A) It connects the optic nerves and is responsible for the crossover of visual information from the left and right eyes.",
+        },
+        {
+          question:
+            "What is the primary function of the optic nerve in the visual system?",
+          options: [
+            "A) It detects light intensity for circadian rhythms.",
+            "B) It controls the dilation and constriction of the pupils.",
+            "C) It transmits visual information from the retina to the occipital lobe.",
+            "D) It controls eye movement to maintain visual stability.",
+          ],
+          correctAnswer:
+            "C) It transmits visual information from the retina to the occipital lobe.",
+        },
+        {
+          question:
+            "What is the main function of the pituitary gland in the endocrine system?",
+          options: [
+            "A) It stores glucose for energy production.",
+            "B) It is responsible for the production of red blood cells.",
+            "C) It controls the movement of the eyes in coordination with the brain.",
+            "D) It regulates the release of hormones from other glands, including the thyroid and adrenal glands.",
+          ],
+          correctAnswer:
+            "D) It regulates the release of hormones from other glands, including the thyroid and adrenal glands.",
+        },
+        {
+          question:
+            "Which of the following is true about the tuberculum in the human body?",
+          options: [
+            "A) It is a bony structure located at the base of the skull and contributes to the structure of the pituitary fossa.",
+            "B) It is located in the lower back and helps with spinal stability.",
+            "C) It is part of the lung and involved in gas exchange.",
+            "D) It refers to a muscle that aids in eye movement.",
+          ],
+          correctAnswer:
+            "A) It is a bony structure located at the base of the skull and contributes to the structure of the pituitary fossa.",
+        },
+        {
+          question:
+            "What is the main function of the carotid arteries in the human body?",
+          options: [
+            "A) They drain deoxygenated blood from the brain to the heart.",
+            "B) They supply oxygenated blood to the brain and face.",
+            "C) They regulate body temperature by circulating warm blood.",
+            "D) They store glucose for the brain's use.",
+          ],
+          correctAnswer:
+            "B) They supply oxygenated blood to the brain and face.",
+        },
+        {
+          question: "What anatomical feature does the clivus form a part of?",
+          options: [
+            "A) It forms part of the base of the skull, providing support for the brainstem.",
+            "B) It is a joint in the spinal column.",
+            "C) It is a part of the ear structure that aids in balance.",
+            "D) It forms part of the shoulder girdle for arm movement.",
+          ],
+          correctAnswer:
+            "A) It forms part of the base of the skull, providing support for the brainstem.",
+        },
+        {
+          question:
+            "What is the function of the odontoid process (also called the dens) in the cervical spine?",
+          options: [
+            "A) It supports the weight of the body during standing.",
+            "B) It connects the shoulder blades to the spine.",
+            "C) It allows rotation of the head by acting as a pivot point for the first cervical vertebra (C1).",
+            "D) It protects the spinal cord from injury.",
+          ],
+          correctAnswer:
+            "C) It allows rotation of the head by acting as a pivot point for the first cervical vertebra (C1).",
+        },
+        {
+          question:
+            "What is the function of the C1 ring (also known as the atlas) in the spine?",
+          options: [
+            "A) It aids in the bending of the knees.",
+            "B) It is involved in the movement of the arms.",
+            "C) It helps stabilize the lower back during walking.",
+            "D) It supports the skull and allows the head to nod up and down.",
+          ],
+          correctAnswer:
+            "D) It supports the skull and allows the head to nod up and down.",
+        },
+        {
+          question:
+            "What is the function of the middle turbinate in the nasal cavity?",
+          options: [
+            "A) It helps the nose smell by detecting different odors.",
+            "B) It helps warm, humidify, and filter the air as it enters the nasal passages.",
+            "C) It produces mucus to protect the nasal passages.",
+            "D) It controls the airflow between the nostrils.",
+          ],
+          correctAnswer:
+            "B) It helps warm, humidify, and filter the air as it enters the nasal passages.",
+        },
+        {
+          question:
+            "What does 'OCR' stand for in the context of the medial region of the optic chiasm?",
+          options: [
+            "A) Ocular Convergence Reflex",
+            "B) Optic Chiasm Region",
+            "C) Ocular Coordination Region",
+            "D) Optic Canal Region",
+          ],
+          correctAnswer: "B) Optic Chiasm Region",
+        },
+      ];
 
-            // Example logic for checking the answer
-            if (annotation.text === correctAnswer) {
-              alert("Correct answer!");
-            } else {
-              alert("Wrong answer!");
-            }
+      function showQuestion(annotationIndex) {
+        // Get the corresponding question for the selected annotation
+        const currentQuestion = quizQuestions[annotationIndex];
+
+        // Show the quiz container and populate with the question
+        document.getElementById("quiz-container").style.display = "block";
+        document.getElementById("results").style.display = "none";
+
+        const questionHTML = `
+          <h2>${currentQuestion.question}</h2>
+          ${currentQuestion.options
+            .map(function (option) {
+              return `<button class="answer-option" display="block">${option}</button>`;
+            })
+            .join("")}
+        `;
+
+        document.getElementById("question").innerHTML = questionHTML;
+
+        // Add event listeners to the answer buttons after they are rendered
+        const answerButtons = document.querySelectorAll(".answer-option");
+        answerButtons.forEach((button) => {
+          button.style.display = "block";
+
+          button.addEventListener("click", function () {
+            checkAnswer(button.textContent, annotationIndex);
           });
-        },
-        error: function () {
-          console.log("Error initializing the model.");
-        },
-      });
+        });
+      }
+
+      function checkAnswer(selectedOption, annotationIndex) {
+        const currentQuestion = quizQuestions[annotationIndex];
+        let feedbackMessage = "";
+
+        // If the selected answer is correct, increment the score and show feedback
+        if (selectedOption === currentQuestion.correctAnswer) {
+          score++;
+          feedbackMessage = "Correct!";
+        } else {
+          feedbackMessage = `Incorrect! The correct answer is: ${currentQuestion.correctAnswer}`;
+        }
+
+        // Show feedback and move to next question
+        alert(feedbackMessage);
+      }
     </script>
   </body>
 </html>
