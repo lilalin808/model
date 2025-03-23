@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Sketchfab Viewer API example</title>
+    <!-- Sketchfab API -->
+    <script
+      type="text/javascript"
+      src="https://static.sketchfab.com/api/sketchfab-viewer-1.12.1.js"
+    ></script>
+
+    <!-- Permissions Policy for device sensors -->
+    <meta
+      http-equiv="Permissions-Policy"
+      content="accelerometer=*; gyroscope=*; magnetometer=*; ambient-light-sensor=*; xr-spatial-tracking=*"
+    />
+  </head>
+  <body>
+    <iframe
+      id="api-frame"
+      width="800"
+      height="500"
+      src="https://sketchfab.com/models/8e7464e733e742a3a97c6b4b376aeafe/embed"
+      frameborder="0"
+      allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture; xr-spatial-tracking"
+      allowfullscreen
+    ></iframe>
+    <div id="question-container">
+      <p id="question"></p>
+      <div id="answers"></div>
+    </div>
+    <button id="next-question">Next Question</button>
+
+    <script>
+      var version = "1.12.1";
+      var iframe = document.getElementById("api-frame");
+      var uid = "8e7464e733e742a3a97c6b4b376aeafe";
+      var annotations = []; // Store annotations here
+
+      // Initialize the Sketchfab viewer
+      function actionSkfb() {
+        if (!window.Sketchfab) {
+          console.log("no Sketchfab library");
+          return;
+        }
+
+        var client = new window.Sketchfab(version, iframe);
+        var error = function () {
+          console.error("Sketchfab API error");
+        };
+
+        var success = function (api) {
+          api.start(function () {});
+          api.addEventListener("viewerready", function () {
+            api.getAnnotationList(function (err, annots) {
+              if (!err) {
+                annotations = annots;
+                console.log(annotations);
+              }
+            });
+
+            emptyAnnotations(api);
+
+            console.log("Viewer is ready!");
+          });
+        };
+
+        client.init(uid, {
+          success: success,
+          error: error,
+          autostart: 1,
+          preload: 1,
+          annotation_tooltip_visible: 0,
+        });
+      }
+
+      actionSkfb();
+
+      function emptyAnnotations(api) {
+        for (var i = 0; i < 10; i++) {
+          try {
+            api.updateAnnotation(i, {
+              title: "---",
+              content: undefined,
+            });
+            console.log(`Annotation ${i} updated successfully.`);
+          } catch (error) {
+            console.error(`Error updating annotation ${i}:`, error);
+          }
+        }
+      }
+
+      annotations = [
+        { name: "Optic chiasm" },
+        { name: "Optic nerve" },
+        { name: "Pituitary gland" },
+        { name: "Tuberculum" },
+        { name: "Carotid artery" },
+        { name: "Clivus" },
+        { name: "Odontoid" },
+        { name: "C1 Ring" },
+        { name: "Middle turbinate" },
+        { name: "Medial OCR" },
+      ];
+
+      const questions = [
+        {
+          question: "Where is the Carotid artery?",
+          correctAnswerIndex: "5",
+          options: ["0", "1", "2", "4", "5"],
+        },
+        {
+          question: "Where is the Optic chiasm?",
+          correctAnswerIndex: "1",
+          options: ["1", "3", "5", "7", "9"],
+        },
+        {
+          question: "Where is the Pituitary gland?",
+          correctAnswerIndex: "3",
+          options: ["1", "3", "4", "7", "8"],
+        },
+        {
+          question: "Where is the Clivus?",
+          correctAnswerIndex: "6",
+          options: ["0", "6", "2", "8", "9"],
+        },
+        {
+          question: "Where is the Odontoid?",
+          correctAnswerIndex: "7",
+          options: ["1", "4", "6", "7", "9"],
+        },
+        {
+          question: "Where is the Tuberculum?",
+          correctAnswerIndex: "4",
+          options: ["0", "4", "5", "7", "9"],
+        },
+        {
+          question: "Where is the Optic nerve?",
+          correctAnswerIndex: "2",
+          options: ["1", "2", "5", "7", "8"],
+        },
+        {
+          question: "Where is the C1 ring?",
+          correctAnswerIndex: "8",
+          options: ["3", "7", "6", "8", "9"],
+        },
+        {
+          question: "Where is the Medial OCR?",
+          correctAnswerIndex: "10",
+          options: ["1", "10", "5", "8", "0"],
+        },
+        {
+          question: "Where is the Middle turbinate?",
+          correctAnswerIndex: "9",
+          options: ["9", "0", "7", "2", "5"],
+        },
+      ];
+
+      let currentQuestionIndex = 0; // Correct answer index for "Carotid artery"
+
+      // Function to display the question and choices
+      function displayQuestion() {
+        const questionElement = document.getElementById("question");
+        const answersElement = document.getElementById("answers");
+
+        // Display question
+        const currentQuestion = questions[currentQuestionIndex];
+        questionElement.textContent = currentQuestion.question;
+
+        const questionHTML = `
+          <h2>${currentQuestion.question}</h2>
+          ${currentQuestion.options
+            .map(function (option) {
+              return `<button class="answer-option" display="block">${option}</button>`;
+            })
+            .join("")}
+        `;
+
+        questionElement.innerHTML = questionHTML;
+
+        // Add event listeners to the answer buttons after they are rendered
+        const answerButtons = document.querySelectorAll(".answer-option");
+        answerButtons.forEach((button) => {
+          button.style.display = "block";
+
+          button.addEventListener("click", function () {
+            checkAnswer(button.textContent); // Pass the index of the selected option
+          });
+        });
+      }
+
+      // Function to check the user's answer
+      function checkAnswer(selectedIndex) {
+        const resultMessage = document.createElement("p");
+
+        const correctAnswer =
+          questions[currentQuestionIndex].correctAnswerIndex;
+
+        if (selectedIndex === correctAnswer) {
+          resultMessage.textContent = "Correct!";
+        } else {
+          resultMessage.textContent = `Wrong. Try again`;
+        }
+
+        document.body.appendChild(resultMessage);
+
+        // Remove the result message after 3 seconds
+        setTimeout(function () {
+          resultMessage.remove();
+        }, 2000);
+      }
+
+      // Function to handle the next question
+      function nextQuestion() {
+        // Set the question to the next annotation index, for example, randomly selecting a new question
+        if (currentQuestionIndex === 9) currentQuestionIndex = 0;
+        else currentQuestionIndex++;
+
+        displayQuestion();
+      }
+
+      // Initialize quiz
+      displayQuestion();
+      document
+        .getElementById("next-question")
+        .addEventListener("click", nextQuestion);
+    </script>
+  </body>
+</html>
